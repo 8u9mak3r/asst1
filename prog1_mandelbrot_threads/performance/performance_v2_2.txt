@@ -1,0 +1,40 @@
+[mandelbrot serial]:		[234.175] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:		[232.856] ms
+Wrote image file mandelbrot-thread.ppm
+				(1.01x speedup from 1 threads)
+[mandelbrot serial]:		[232.057] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:		[139.161] ms
+Wrote image file mandelbrot-thread.ppm
+				(1.67x speedup from 2 threads)
+[mandelbrot serial]:		[233.509] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:		[107.736] ms
+Wrote image file mandelbrot-thread.ppm
+				(2.17x speedup from 3 threads)
+[mandelbrot serial]:		[232.124] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:		[91.432] ms
+Wrote image file mandelbrot-thread.ppm
+				(2.54x speedup from 4 threads)
+[mandelbrot serial]:		[231.242] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:		[80.849] ms
+Wrote image file mandelbrot-thread.ppm
+				(2.86x speedup from 5 threads)
+[mandelbrot serial]:		[232.932] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:		[71.360] ms
+Wrote image file mandelbrot-thread.ppm
+				(3.26x speedup from 6 threads)
+[mandelbrot serial]:		[233.035] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:		[65.435] ms
+Wrote image file mandelbrot-thread.ppm
+				(3.56x speedup from 7 threads)
+[mandelbrot serial]:		[233.606] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:		[65.211] ms
+Wrote image file mandelbrot-thread.ppm
+				(3.58x speedup from 8 threads)
