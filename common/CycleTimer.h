@@ -7,7 +7,7 @@
   #else
     #include <mach/mach.h>
     #include <mach/mach_time.h>
-  #endif // __x86_64__ or not
+  #endif //  __x86_64__ or not
 
   #include <stdio.h>  // fprintf
   #include <stdlib.h> // exit
