@@ -230,7 +230,7 @@ exponents[i] = i & 1 ? 0 : 2;
 ## Extra Point - Vectorizing ArraySum
 &emsp;&emsp;利用伪向量指令实现数组求和。README中的提示告诉我们`hadd`和`interleave`两个操作会有用，同时可以假设数组长度`N`一定会是向量长度`VECTOR_WIDTH`的倍数。
 
-&emsp;&emsp;有点类似于分治的策略：首先用`hadd`求相邻两元素的和，，再进行`interleave`操作，使得$s[0] = v[0] + v[1],s[1] = v[2] + v[3]$。刚刚是第一次循环，如此循环往复$\log_{2} (VECTOR\_WIDTH)$次，最后能得到$s[0] = sum(v)$。其中，在第$k$次循环时（$k \geq 1$），有$s[0] = sum(v[0...2^{k} - 1])$
+&emsp;&emsp;有点类似于分治的策略：首先用`hadd`求相邻两元素的和，，再进行`interleave`操作，使得`s[0] = v[0] + v[1],s[1] = v[2] + v[3]`。刚刚是第一次循环，如此循环往复`\log2(VECTOR\_WIDTH)`次，最后能得到`s[0] = sum(v)`。其中，在第`k(k >= 1)`次循环时，有`s[0] = sum(v[0...2^k - 1])`
 
 &emsp;&emsp;AC代码如下：
 ```c
