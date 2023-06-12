@@ -1,6 +1,6 @@
 # 实验环境
-- Ubuntu 22.04 虚拟机
-- Intel Core i7 10750H处理器（虚拟机配置单CPU 4核心）
+- Ubuntu 20.04
+- Intel Core i7 10750H处理器（6核心12线程）
 - Intel ispc v1.18.0
 
 
@@ -29,24 +29,24 @@ void workerThreadStart(WorkerArgs * const args) {
 }
 ```
 
-&emsp;&emsp;分别运行shell脚本文件`shellscript/run_v[1-2].sh`，输出分别重定向到`performance/performance_v[1-2]_2.txt`，得到的加速比并运行`plot/plot_speedup.py`绘制折线图：
+&emsp;&emsp;分别运行shell脚本文件`shellscript/run_v[1-2].sh`，输出分别重定向到`performance/v[1-2]_2.txt`，得到的加速比并运行`plot/speedup.py`绘制折线图：
 
 <img src="image/1.png" width="600">
 
 ## Subproblem 1 - sIs Speedup Linear in the Number of Threads Used?
-&emsp;&emsp;View 1当线程数量在3个以上时，加速比和线程数量近似线性；View 2几乎完全成线性关系。
+&emsp;&emsp;View 1加速比和线程数量近似线性；View 2几乎完全成线性关系。
 
-&emsp;&emsp;由于4核处理器支持8个线程，每多一个线程，处理器的利用率都会增加，同时并行的线程各自的工作量都会减少，从而能获得更多加速。
+&emsp;&emsp;由于6核处理器支持12个线程，每多一个线程，处理器的利用率都会增加，同时并行的线程各自的工作量都会减少，从而能获得更多加速。
 
 ## Subproblem 2 - Confirm the Hypothesis
-&emsp;&emsp;`main.cpp`中已经有对单线程执行（顺序执行）和多线程执行的最短用时进行计算并输出。打开`performance/performance_v[1-2]_2.txt`就可以看到。
+&emsp;&emsp;`main.cpp`中已经有对单线程执行（顺序执行）和多线程执行的最短用时进行计算并输出。打开`performance/v[1-2]_2.txt`就可以看到。
 
-&emsp;&emsp;`plot/plot_time.py`绘制用时随线程数量变化的图像，并和先前加速比的图像进行对比就可以发现这俩曲线的变化是同步且相反的：**随线程数量变化，加速比增加时用时会减少，加速比减少时用时会增加**。每多一个线程，单个线程的用时会减少，再加上多线程在多个处理器内核上并行执行，就会获得更多的加速比。
+&emsp;&emsp;`plot/time.py`绘制用时随线程数量变化的图像，并和先前加速比的图像进行对比就可以发现这俩曲线的变化是同步且相反的：**随线程数量变化，加速比增加时用时会减少，加速比减少时用时会增加**。每多一个线程，单个线程的用时会减少，再加上多线程在多个处理器内核上并行执行，就会获得更多的加速比。
 
 <img src="image/2.png" width="600">
 
 ## Subproblem 3 - Performance Improvement
-&emsp;&emsp;这里我改进了以下对各个线程的任务分配，由原来的`blocked`方式改为了`interleaved`方式，加速比相比于原来取得了一定提升，但是没有提高到7x-8x，可能由于虚拟机配置原因吧，后面Program 3用了SIMD + task才加速比才刚刚上了7。
+&emsp;&emsp;这里我改进了以下对各个线程的任务分配，由原来的`blocked`方式改为了`interleaved`方式，加速比相比于原来取得了很多提升，线程数为8时view 1和view 2的加速比都达到了7x左右。
 
 ```c
 void workerThreadStart(WorkerArgs * const args) {
@@ -68,7 +68,7 @@ void workerThreadStart(WorkerArgs * const args) {
 }
 ```
 
-&emsp;&emsp;再次分别运行shell脚本文件`shellscript/run_v[1-2].sh`，输出分别重定向到`performance/performance_v[1-2]_4.txt`，运行`plot/plot_interleaved.py`绘制图像，并和原来的加速比图像进行对比，可以发现线程数在2-7之间时加速比有很大提升。
+&emsp;&emsp;再次分别运行shell脚本文件`shellscript/run_v[1-2].sh`，输出分别重定向到`performance/v[1-2]_4.txt`，运行`plot/interleaved.py`绘制图像，并和原来的加速比图像进行对比，可以发现加速比有质的提升。
 
 <img src="image/3.png" width="600">
 
@@ -77,23 +77,40 @@ void workerThreadStart(WorkerArgs * const args) {
 
 ```shell
 $ ./mandelbrot -t 16
-[mandelbrot serial]:            [399.741] ms
+[mandelbrot serial]:            [390.369] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot thread]:            [111.378] ms
+[mandelbrot thread]:            [53.693] ms
 Wrote image file mandelbrot-thread.ppm
-                                (3.59x speedup from 16 threads)
+                                (7.27x speedup from 16 threads)
 
 $ ./mandelbrot -t 16 -v 2
-[mandelbrot serial]:            [234.855] ms
+[mandelbrot serial]:            [231.543] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot thread]:            [65.189] ms
+[mandelbrot thread]:            [33.522] ms
 Wrote image file mandelbrot-thread.ppm
-                                (3.60x speedup from 16 threads)
+                                (6.91x speedup from 16 threads)
 ```
 
-&emsp;&emsp;可以发现相比于8线程，16线程的性能可以说就是压根没有提升。
+&emsp;&emsp;可以发现相比于8线程，16线程的性能有提升，但是很少。
 
-&emsp;&emsp;因为4核处理器最多支持8个线程互不干扰地并行执行。16线程虽然使得各个线程的工作量进一步减小，但同时为处理器带来了额外的线程调度的开销，两者一抵消，几乎无法带来任何性能提升。
+&emsp;&emsp;因为6核处理器最多支持12个线程互不干扰地并行执行。16线程虽然使得各个线程的工作量进一步减小，但同时为处理器带来了额外的线程调度的开销，两者一抵消，几乎无法带来任何性能提升。
+
+&emsp;&emsp;同时由此可知，线程数设置为12时能够获得最多的加速比。
+```shell
+$ ./mandelbrot -t 12
+[mandelbrot serial]:            [394.095] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:            [38.788] ms
+Wrote image file mandelbrot-thread.ppm
+                                (10.16x speedup from 12 threads)
+
+$ ./mandelbrot -t 12 -v2
+[mandelbrot serial]:            [230.599] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot thread]:            [25.905] ms
+Wrote image file mandelbrot-thread.ppm
+                                (8.90x speedup from 12 threads)
+```
 
 
 # Program 2 - Vecintrin
@@ -268,19 +285,19 @@ float arraySumVector(float* values, int N) {
 
 &emsp;&emsp;编译生成并运行，结果如下：
 ```shell
-$ ./mandelbrot_ispc -v 1
-[mandelbrot serial]:            [163.230] ms
+$ ./mandelbrot_ispc
+[mandelbrot serial]:            [197.372] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot ispc]:              [40.104] ms
+[mandelbrot ispc]:              [44.262] ms
 Wrote image file mandelbrot-ispc.ppm
-                                (3.54x speedup from ISPC)
+                                (4.46x speedup from ISPC)
                   
-* N = 4
-[mandelbrot serial]:            [163.422] ms
+$ ./mandelbrot_ispc -v 2
+[mandelbrot serial]:            [115.592] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot ispc]:              [40.111] ms
+[mandelbrot ispc]:              [31.588] ms
 Wrote image file mandelbrot-ispc.ppm
-                                (3.54x speedup from ISPC)
+                                (3.66x speedup from ISPC)
 ```
 
 &emsp;&emsp;`README`提示我们SIMD向量处理单元长度为8（8-wide）,理论上应该获得8x左右加速比，但是这里加速比仅仅在4x左右，猜想有如下原因：
@@ -293,48 +310,60 @@ Wrote image file mandelbrot-ispc.ppm
 
 &emsp;&emsp;改变`mandelbrot.ispc`中`mandelbrot_ispc_withtasks`函数里面`launch`命令的参数，分别获得线程为2，4，8，16时的加速比：
 ```shell
-* N = 2
-[mandelbrot serial]:            [163.230] ms
+# N = 2
+[mandelbrot serial]:            [197.253] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot ispc]:              [46.104] ms
+[mandelbrot ispc]:              [43.681] ms
 Wrote image file mandelbrot-ispc.ppm
-[mandelbrot multicore ispc]:    [23.508] ms
+[mandelbrot multicore ispc]:    [23.749] ms
 Wrote image file mandelbrot-task-ispc.ppm
-                                (3.54x speedup from ISPC)
-                                (6.94x speedup from task ISPC)
+                                (4.52x speedup from ISPC)
+                                (8.31x speedup from task ISPC)
 
-* N = 4
-[mandelbrot serial]:            [163.422] ms
+# N = 4
+[mandelbrot serial]:            [193.998] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot ispc]:              [46.111] ms
+[mandelbrot ispc]:              [44.465] ms
 Wrote image file mandelbrot-ispc.ppm
-[mandelbrot multicore ispc]:    [18.560] ms
+[mandelbrot multicore ispc]:    [19.067] ms
 Wrote image file mandelbrot-task-ispc.ppm
-                                (3.54x speedup from ISPC)
-                                (8.81x speedup from task ISPC)
+                                (4.36x speedup from ISPC)
+                                (10.17x speedup from task ISPC)
 
-* N = 8
-[mandelbrot serial]:            [163.254] ms
+# N = 8
+$ ./mandelbrot_ispc -t
+[mandelbrot serial]:            [198.230] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot ispc]:              [45.905] ms
+[mandelbrot ispc]:              [43.548] ms
 Wrote image file mandelbrot-ispc.ppm
-[mandelbrot multicore ispc]:    [12.944] ms
+[mandelbrot multicore ispc]:    [11.843] ms
 Wrote image file mandelbrot-task-ispc.ppm
-                                (3.56x speedup from ISPC)
-                                (12.61x speedup from task ISPC)
+                                (4.55x speedup from ISPC)
+                                (16.74x speedup from task ISPC)
 
-* N = 16
-[mandelbrot serial]:            [166.329] ms
+# N = 16
+$ ./mandelbrot_ispc -t
+[mandelbrot serial]:            [205.982] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot ispc]:              [45.324] ms
+[mandelbrot ispc]:              [45.347] ms
 Wrote image file mandelbrot-ispc.ppm
-[mandelbrot multicore ispc]:    [12.886] ms
+[mandelbrot multicore ispc]:    [6.087] ms
 Wrote image file mandelbrot-task-ispc.ppm
-                                (3.66x speedup from ISPC)
-                                (12.91x speedup from task ISPC)
+                                (4.54x speedup from ISPC)
+                                (33.84x speedup from task ISPC)
+
+# N = 32
+[mandelbrot serial]:            [196.869] ms
+Wrote image file mandelbrot-serial.ppm
+[mandelbrot ispc]:              [44.074] ms
+Wrote image file mandelbrot-ispc.ppm
+[mandelbrot multicore ispc]:    [5.673] ms
+Wrote image file mandelbrot-task-ispc.ppm
+                                (4.47x speedup from ISPC)
+                                (34.70x speedup from task ISPC)
 ```
 
-&emsp;&emsp;任务数为8时加速比达到上限，对应4核所支持的8线程。16线程时会引入处理器调度的开销，加速比很难再有质量的提升。
+&emsp;&emsp;任务数为32时加速比达到32x，再往上加速比很难再有质量的提升。
 
 
 # Program 4 - sqrt
@@ -344,14 +373,14 @@ Wrote image file mandelbrot-task-ispc.ppm
 &emsp;&emsp;运行结果如下：
 ```shell
 $ ./sqrt
-[sqrt serial]:          [670.433] ms
-[sqrt ispc]:            [157.017] ms
-[sqrt task ispc]:       [50.221] ms
-                                (4.27x speedup from ISPC)
-                                (13.35x speedup from task ISPC)
+[sqrt serial]:          [655.635] ms
+[sqrt ispc]:            [161.990] ms
+[sqrt task ispc]:       [23.655] ms
+                                (4.05x speedup from ISPC)
+                                (27.72x speedup from task ISPC)
 ```
 
-&emsp;&emsp;使用`launch[64]`命令，处理器的4核得到了充分利用，故带task的加速比是不带task的近4倍，不是正好4倍是因为task数量太多而引入了线程调度带来的额外开销。
+&emsp;&emsp;使用`launch[64]`命令，处理器的6核得到了充分利用，获得了更为恐怖的性能提升。
 
 
 ## Subproblem 2&3 - Maximum and Minumum Speedup
@@ -359,25 +388,25 @@ $ ./sqrt
 
 &emsp;&emsp;根据`README`提供的求根运算循环次数和输入值的关系，可知**当输入向量全为2.999999时，求根运算的开销最大，并行带来的加速比最客观；而全为1时，求根运算几乎没有开销，带来的加速比最小**。
 
-&emsp;&emsp;分别修改main函数中初始化`values`的代码并编译运行，效果如下：
+&emsp;&emsp;分别修改main函数中第37行初始化`values`的代码并编译运行，效果如下：
 - 全为2.999999时：
 ```shell
 $ ./sqrt
-[sqrt serial]:          [3380.843] ms
-[sqrt ispc]:            [482.273] ms
-[sqrt task ispc]:       [134.407] ms
-                                (7.01x speedup from ISPC)
-                                (25.15x speedup from task ISPC)
+[sqrt serial]:          [3366.949] ms
+[sqrt ispc]:            [516.117] ms
+[sqrt task ispc]:       [55.514] ms
+                                (6.52x speedup from ISPC)
+                                (60.65x speedup from task ISPC)
 ```
 
 - 全为1时：
 ```shell
 $ ./sqrt
-[sqrt serial]:          [18.330] ms
-[sqrt ispc]:            [37.333] ms
-[sqrt task ispc]:       [21.189] ms
-                                (0.49x speedup from ISPC)
-                                (0.87x speedup from task ISPC)
+[sqrt serial]:          [20.679] ms
+[sqrt ispc]:            [22.926] ms
+[sqrt task ispc]:       [22.469] ms
+                                (0.90x speedup from ISPC)
+                                (0.92x speedup from task ISPC)
 ```
 
 # Program 5 - Saxpy
@@ -387,19 +416,19 @@ $ ./sqrt
 &emsp;&emsp;运行`saxpy`，发现加速比甚至不足1。
 ```shell
 $ ./saxpy
-[saxpy serial]:         [20.902] ms     [14.258] GB/s   [1.914] GFLOPS
-[saxpy ispc]:           [22.851] ms     [13.042] GB/s   [1.751] GFLOPS
-[saxpy task ispc]:      [21.995] ms     [13.550] GB/s   [1.819] GFLOPS
-                                (1.04x speedup from use of tasks)
-                                (0.91x speedup from ISPC)
-                                (0.95x speedup from task ISPC)
+[saxpy serial]:         [20.558] ms     [14.497] GB/s   [1.946] GFLOPS
+[saxpy ispc]:           [25.230] ms     [11.812] GB/s   [1.585] GFLOPS
+[saxpy task ispc]:      [25.498] ms     [11.688] GB/s   [1.569] GFLOPS
+                                (0.99x speedup from use of tasks)
+                                (0.81x speedup from ISPC)
+                                (0.81x speedup from task ISPC)
 ```
 
 &emsp;&emsp;原因也很好想：运算本身开销太小，就一个浮点乘和一个浮点加操作。创建ispc程序例程，创建多线程，处理器调度和频繁访问内存本身所带来的额外开销会被无限放大。
 
 &emsp;&emsp;修改`saxpySerial.cpp`和`saxpy.ispc`，让同样的操作循环执行32次：
 ```c
-// saxpySerial.cpp
+/* saxpySerial.cpp */
 for (int i=0; i<N; i++) {
     for (int j = 0; j < 32; j++)
     {
@@ -407,6 +436,7 @@ for (int i=0; i<N; i++) {
     }
 }
 
+/* saxpy.ispc */
 foreach (i = 0 ... N) {           
     for (int j = 0; j < 32; j++)
     {
@@ -418,12 +448,12 @@ foreach (i = 0 ... N) {
 &emsp;&emsp;再次运行，此时加速比显著提升：
 ```shell
 $ ./saxpy
-[saxpy serial]:         [773.077] ms    [0.386] GB/s    [0.052] GFLOPS
-[saxpy ispc]:           [143.864] ms    [2.072] GB/s    [0.278] GFLOPS
-[saxpy task ispc]:      [58.088] ms     [5.131] GB/s    [0.689] GFLOPS
-                                (2.48x speedup from use of tasks)
-                                (5.37x speedup from ISPC)
-                                (13.31x speedup from task ISPC)
+[saxpy serial]:         [790.498] ms    [0.377] GB/s    [0.051] GFLOPS
+[saxpy ispc]:           [146.559] ms    [2.033] GB/s    [0.273] GFLOPS
+[saxpy task ispc]:      [28.322] ms     [10.523] GB/s   [1.412] GFLOPS
+                                (5.17x speedup from use of tasks)
+                                (5.39x speedup from ISPC)
+                                (27.91x speedup from task ISPC)
 ```
 
 &emsp;&emsp;基于此，我认为由于运算本身开销太小，程序无法获得质的性能提升。
