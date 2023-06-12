@@ -6,10 +6,7 @@ export void saxpy_ispc(uniform int N,
                             uniform float result[])
 {
     foreach (i = 0 ... N) {           
-        for (int j = 0; j < 32; j++)
-        {
             result[i] = scale * X[i] + Y[i];
-        }
     }
 }
 
@@ -25,10 +22,7 @@ task void saxpy_ispc_task(uniform int N,
     uniform int indexEnd = min(N, indexStart + span);
 
     foreach (i = indexStart ... indexEnd) {
-        for (int j = 0; j < 32; j++)
-        {
             result[i] = scale * X[i] + Y[i];
-        }
     }
 }
 

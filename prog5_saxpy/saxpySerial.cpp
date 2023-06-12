@@ -7,10 +7,7 @@ void saxpySerial(int N,
 {
 
     for (int i=0; i<N; i++) {
-        for (int j = 0; j < 32; j++)
-        {
-            result[i] = scale * X[i] + Y[i];
-        }
+        result[i] = scale * X[i] + Y[i];
     }
 }
 
