@@ -78,6 +78,7 @@ int main(int argc, char** argv) {
     float y0 = -1;
     float y1 = 1;
 
+
     // parse commandline options ////////////////////////////////////////////
     int opt;
     static struct option long_options[] = {

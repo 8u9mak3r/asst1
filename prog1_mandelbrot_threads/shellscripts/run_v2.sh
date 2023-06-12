@@ -1,6 +1,6 @@
 #! /bin/bash
 
-cd ~/Desktop/stanford-cs-149/prog1_mandelbrot_threads
+cd ~/Desktop/labs/stanford-cs149-asst1/prog1_mandelbrot_threads
 ./mandelbrot -t 1 -v 2
 ./mandelbrot -t 2 -v 2
 ./mandelbrot -t 3 -v 2
