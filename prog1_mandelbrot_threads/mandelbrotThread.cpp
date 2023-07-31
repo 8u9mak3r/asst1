@@ -40,6 +40,8 @@ void workerThreadStart(WorkerArgs * const args) {
 
 
     /* blocked version */
+    // double startTime = CycleTimer::currentSeconds();
+
     // float x0 = args->x0, y0 = args->y0;
     // float x1 = args->x1, y1 = args->y1;
     // int tid = args->threadId;
@@ -56,6 +58,9 @@ void workerThreadStart(WorkerArgs * const args) {
 
     // mandelbrotSerial(x0, y0, x1, y1, width, height, startRow,
     //                     numRows, maxIterations, args->output);
+
+    // double endTime = CycleTimer::currentSeconds();
+    // printf("Thread %d: %.3fms\n", args->threadId, (endTime - startTime) * 1000);
 
     /* interleaved version */
 
@@ -123,6 +128,7 @@ void mandelbrotThread(
     }
     
     workerThreadStart(&args[0]);
+    
 
     // join worker threads
     for (int i=1; i<numThreads; i++) {

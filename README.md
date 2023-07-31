@@ -29,24 +29,58 @@ void workerThreadStart(WorkerArgs * const args) {
 }
 ```
 
-&emsp;&emsp;分别运行shell脚本文件`shellscript/run_v[1-2].sh`，输出分别重定向到`performance/v[1-2]_2.txt`，得到的加速比并运行`plot/speedup.py`绘制折线图：
+&emsp;&emsp;得到的加速比折线图如下：
 
-<img src="image/1.png" width="600">
+<img src="handout-images/1.png" width="600">
 
-## Subproblem 1 - sIs Speedup Linear in the Number of Threads Used?
+## Subproblem 1 - Is Speedup Linear in the Number of Threads Used?
 &emsp;&emsp;View 1加速比和线程数量近似线性；View 2几乎完全成线性关系。
 
 &emsp;&emsp;由于6核处理器支持12个线程，每多一个线程，处理器的利用率都会增加，同时并行的线程各自的工作量都会减少，从而能获得更多加速。
 
+&emsp;&emsp;然而我们不能忽视一个现象：View 1的样例中，当线程数为3时获得的加速比反而比线程数为2时还要少，这是因为**计算量的分配不平均**导致的。
+
 ## Subproblem 2 - Confirm the Hypothesis
-&emsp;&emsp;`main.cpp`中已经有对单线程执行（顺序执行）和多线程执行的最短用时进行计算并输出。打开`performance/v[1-2]_2.txt`就可以看到。
+&emsp;&emsp;用`CycleTimer::currentSeconds()`可以计算每个线程的运行时间，打印每个线程的运行时间，由于计算运行时间的逻辑是取5次运行中耗时最小的那次，所以打印的线程情况会循环5次。
 
-&emsp;&emsp;`plot/time.py`绘制用时随线程数量变化的图像，并和先前加速比的图像进行对比就可以发现这俩曲线的变化是同步且相反的：**随线程数量变化，加速比增加时用时会减少，加速比减少时用时会增加**。每多一个线程，单个线程的用时会减少，再加上多线程在多个处理器内核上并行执行，就会获得更多的加速比。
+```cpp
+void workerThreadStart(WorkerArgs * const args) {
 
-<img src="image/2.png" width="600">
+    // TODO FOR CS149 STUDENTS: Implement the body of the worker
+    // thread here. Each thread should make a call to mandelbrotSerial()
+    // to compute a part of the output image.  For example, in a
+    // program that uses two threads, thread 0 could compute the top
+    // half of the image and thread 1 could compute the bottom half.
+
+    double startTime = CycleTimer::currentSeconds();
+
+    /* computation process */
+
+    double endTime = CycleTimer::currentSeconds();
+    printf("Thread %d: %.3fms\n", args->threadId, (endTime - startTime) * 1000);
+}
+```
+
+&emsp;&emsp;线程数为2时，运行结果如下：
+
+<img src="handout-images/2-1.png" width="600">
+
+&emsp;&emsp;然而线程数为3时，运行结果如下：
+
+<img src="handout-images/2-2.png" width="600">
+
+&emsp;&emsp; 可以发现2个线程时，每个线程的运行时间是均匀的，但是3个线程时，1号线程运行时间远高于0号线程和2号线程。这是因为虽然每个线程都平均分配了若干行，但是计算量却不一样。View 1图像的特点是每个像素的亮度都和计算该像素的复杂度正相关，图像的中间远比上下两侧更亮，1号线程刚好被分配到了计算该图像的中间区域，所以计算耗时远远大于另外两个线程，也就拖慢了整体的线程运行时间。View 2样例图片整体都很暗，不会出现计算量分配不均匀的情况。总结：**使用多线程并行计算时，应该尽量使每个线程的计算量均匀**。
 
 ## Subproblem 3 - Performance Improvement
-&emsp;&emsp;这里我改进了以下对各个线程的任务分配，由原来的`blocked`方式改为了`interleaved`方式，加速比相比于原来取得了很多提升，线程数为8时view 1和view 2的加速比都达到了7x左右。
+&emsp;&emsp;这里我改进了以下对各个线程的任务分配，由原来的`blocked`方式改为了`interleaved`方式，加速比相比于原来取得了很多提升，线程数为8时view 1和view 2的加速比都达到了7x左右。这是因为：
+
+- `interleaved`方式下，线程并行执行时能有更好的空间局部性。
+- `interleaved`方式下，线程计算量的分配更加平均。通过下面两张图的对比就能发现这一点。
+
+<img src="handout-images/4.png" width="400">
+
+<img src="handout-images/5.png" width="400">
+
 
 ```c
 void workerThreadStart(WorkerArgs * const args) {
@@ -68,9 +102,9 @@ void workerThreadStart(WorkerArgs * const args) {
 }
 ```
 
-&emsp;&emsp;再次分别运行shell脚本文件`shellscript/run_v[1-2].sh`，输出分别重定向到`performance/v[1-2]_4.txt`，运行`plot/interleaved.py`绘制图像，并和原来的加速比图像进行对比，可以发现加速比有质的提升。
+<img src="handout-images/3.png" width="600">
 
-<img src="image/3.png" width="600">
+&emsp;&emsp;可以看到相比于`blocked`的计算分配方式，`interleaved`方式获得了更多的加速比，且由于任务量分配合理，加速比和线程数呈现出很明显的线性增长关系。
 
 ## Subproblem 4 - 16 Threads VS. 8 Threads
 &emsp;&emsp;设置线程数为16时输出如下：
@@ -83,33 +117,33 @@ Wrote image file mandelbrot-serial.ppm
 Wrote image file mandelbrot-thread.ppm
                                 (7.27x speedup from 16 threads)
 
-$ ./mandelbrot -t 16 -v 2
-[mandelbrot serial]:            [231.543] ms
+$ ./mandelbrot -t 8
+[mandelbrot serial]:            [392.977] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot thread]:            [33.522] ms
+[mandelbrot thread]:            [54.832] ms
 Wrote image file mandelbrot-thread.ppm
-                                (6.91x speedup from 16 threads)
+                                (7.17x speedup from 8 threads)
 ```
 
-&emsp;&emsp;可以发现相比于8线程，16线程的性能有提升，但是很少。
+&emsp;&emsp;可以发现相比于8线程，16线程的性能几乎没有提升。
 
-&emsp;&emsp;因为6核处理器最多支持12个线程互不干扰地并行执行。16线程虽然使得各个线程的工作量进一步减小，但同时为处理器带来了额外的线程调度的开销，两者一抵消，几乎无法带来任何性能提升。
+&emsp;&emsp;因为6核处理器最多支持12个线程互不干扰地并行执行。16线程虽然使得各个线程的工作量进一步减小，但同时为处理器带来了额外的线程调度的开销，几乎无法带来任何性能提升。
 
 &emsp;&emsp;同时由此可知，线程数设置为12时能够获得最多的加速比。
 ```shell
-$ ./mandelbrot -t 12
-[mandelbrot serial]:            [394.095] ms
+./mandelbrot -t 12
+[mandelbrot serial]:            [406.685] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot thread]:            [38.788] ms
+[mandelbrot thread]:            [39.195] ms
 Wrote image file mandelbrot-thread.ppm
-                                (10.16x speedup from 12 threads)
+                                (10.38x speedup from 12 threads)
 
-$ ./mandelbrot -t 12 -v2
-[mandelbrot serial]:            [230.599] ms
+$ ./mandelbrot -t 8
+[mandelbrot serial]:            [392.977] ms
 Wrote image file mandelbrot-serial.ppm
-[mandelbrot thread]:            [25.905] ms
+[mandelbrot thread]:            [54.832] ms
 Wrote image file mandelbrot-thread.ppm
-                                (8.90x speedup from 12 threads)
+                                (7.17x speedup from 8 threads)
 ```
 
 
